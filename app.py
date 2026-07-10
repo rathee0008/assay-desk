@@ -440,7 +440,7 @@ def main():
         ["Map & Intel", "Historical charts", "Portfolio", "Alerts"]
     )
     with tab_overview:
-            render_reserves_map(dark)
+        render_reserves_map(dark)
         render_news()
     with tab_history:
         render_history_chart()
