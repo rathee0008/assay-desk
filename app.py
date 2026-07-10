@@ -242,24 +242,8 @@ def render_history_chart():
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_reserves_map(dark: bool):
-    st.subheader("Global reserves & trade network")
-    st.caption("Interactive 3D globe — drag the rotation controls or switch layers to explore reserves, mines, and shipping chokepoints.")
-
-    layers = st.multiselect(
-        "Map layers",
-        ["Mines", "Chokepoints", "Trade routes"],
-        default=["Mines", "Chokepoints", "Trade routes"],
-    )
-    ctrl1, ctrl2, ctrl3 = st.columns([2, 1, 1])
-    with ctrl1:
-        projection = st.radio("Projection", ["Orthographic (3D globe)", "Natural earth (flat)"], horizontal=True)
-    with ctrl2:
-        rot_lon = st.slider("Rotate", -180, 180, 20, step=5)
-    with ctrl3:
-        rot_lat = st.slider("Tilt", -90, 90, 15, step=5)
-
-    proj_type = "orthographic" if projection.startswith("Orthographic") else "natural earth"
+@st.cache_resource(show_spinner=False)
+def _build_reserves_figure(layers):
     df = pd.DataFrame(RESERVES)
     neon_scale = [
         [0.0, "#050b18"],
@@ -268,26 +252,10 @@ def render_reserves_map(dark: bool):
         [0.75, "#5ee6a8"],
         [1.0, "#e8b64c"],
     ]
+    fig = px.choropleth(df, locations="iso3", color="tonnes", hover_name="country", color_continuous_scale=neon_scale, labels={"tonnes": "Tonnes"})
 
     mines_df = pd.DataFrame(MINE_SITES)
     choke_df = pd.DataFrame(CHOKEPOINTS)
-
-    fig = px.choropleth(df, locations="iso3", color="tonnes", hover_name="country", color_continuous_scale=neon_scale, labels={"tonnes": "Tonnes"})
-    fig.update_layout(
-        height=520, margin=dict(l=0, r=0, t=0, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        geo=dict(
-            bgcolor="rgba(0,0,0,0)",
-            projection_type=proj_type,
-            projection_rotation=dict(lon=rot_lon, lat=rot_lat),
-            landcolor="#0a1a2f",
-            showocean=True, oceancolor="#020611",
-            showcountries=True, countrycolor="#123049",
-            showcoastlines=True, coastlinecolor="#00eaff",
-            showframe=False,
-        ),
-        legend=dict(font=dict(color="#c9c9d1"), bgcolor="rgba(0,0,0,0)"),
-    )
 
     if "Trade routes" in layers:
         for _, mine in mines_df.iterrows():
@@ -325,6 +293,43 @@ def render_reserves_map(dark: bool):
             name="Shipping chokepoints",
         )
 
+    return fig
+
+def render_reserves_map(dark: bool):
+    st.subheader("Global reserves & trade network")
+    st.caption("Interactive 3D globe — drag the rotation controls or switch layers to explore reserves, mines, and shipping chokepoints.")
+
+    layers = st.multiselect(
+        "Map layers",
+        ["Mines", "Chokepoints", "Trade routes"],
+        default=["Mines", "Chokepoints", "Trade routes"],
+    )
+    ctrl1, ctrl2, ctrl3 = st.columns([2, 1, 1])
+    with ctrl1:
+        projection = st.radio("Projection", ["Orthographic (3D globe)", "Natural earth (flat)"], horizontal=True)
+    with ctrl2:
+        rot_lon = st.slider("Rotate", -180, 180, 20, step=5)
+    with ctrl3:
+        rot_lat = st.slider("Tilt", -90, 90, 15, step=5)
+
+    proj_type = "orthographic" if projection.startswith("Orthographic") else "natural earth"
+    df = pd.DataFrame(RESERVES)
+    fig = go.Figure(_build_reserves_figure(tuple(sorted(layers))))
+    fig.update_layout(
+        height=520, margin=dict(l=0, r=0, t=0, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        geo=dict(
+            bgcolor="rgba(0,0,0,0)",
+            projection_type=proj_type,
+            projection_rotation=dict(lon=rot_lon, lat=rot_lat),
+            landcolor="#0a1a2f",
+            showocean=True, oceancolor="#020611",
+            showcountries=True, countrycolor="#123049",
+            showcoastlines=True, coastlinecolor="#00eaff",
+            showframe=False,
+        ),
+        legend=dict(font=dict(color="#c9c9d1"), bgcolor="rgba(0,0,0,0)"),
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     m1, m2, m3 = st.columns(3)
@@ -335,7 +340,6 @@ def render_reserves_map(dark: bool):
     with st.expander("Reserves ledger"):
         st.dataframe(df[["country", "tonnes"]].sort_values("tonnes", ascending=False), use_container_width=True, hide_index=True)
     st.caption("Reserve tonnages reflect the latest publicly reported IMF/World Gold Council figures and update periodically, not in real time. Trade route lines are illustrative nearest-chokepoint links, not actual shipping data.")
-
 def render_news():
     st.subheader("Intel feed")
     for item in fetch_news():
