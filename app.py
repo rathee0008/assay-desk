@@ -242,21 +242,108 @@ def render_history_chart():
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_reserves_map():
-    st.subheader("Central bank gold reserves")
+def render_reserves_map(dark: bool):
+    st.subheader("Global reserves & trade network")
+    st.caption("Interactive 3D globe — drag the rotation controls or switch layers to explore reserves, mines, and shipping chokepoints.")
+
+    layers = st.multiselect(
+        "Map layers",
+        ["Reserves", "Mines", "Chokepoints", "Trade routes"],
+        default=["Reserves", "Mines", "Chokepoints", "Trade routes"],
+    )
+    ctrl1, ctrl2, ctrl3 = st.columns([2, 1, 1])
+    with ctrl1:
+        projection = st.radio("Projection", ["Orthographic (3D globe)", "Natural earth (flat)"], horizontal=True)
+    with ctrl2:
+        rot_lon = st.slider("Rotate", -180, 180, 20, step=5)
+    with ctrl3:
+        rot_lat = st.slider("Tilt", -90, 90, 15, step=5)
+
+    proj_type = "orthographic" if projection.startswith("Orthographic") else "natural earth"
     df = pd.DataFrame(RESERVES)
-    fig = px.choropleth(df, locations="iso3", color="tonnes", hover_name="country", color_continuous_scale="YlOrBr", labels={"tonnes": "Tonnes"})
-    fig.update_layout(height=420, margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor="rgba(0,0,0,0)", geo=dict(bgcolor="rgba(0,0,0,0)"))
+    neon_scale = [
+        [0.0, "#050b18"],
+        [0.25, "#0b3d5c"],
+        [0.5, "#00b4d8"],
+        [0.75, "#5ee6a8"],
+        [1.0, "#e8b64c"],
+    ]
+
+    fig = go.Figure()
+
+    if "Reserves" in layers:
+        fig.add_trace(go.Choropleth(
+            locations=df["iso3"], z=df["tonnes"], text=df["country"],
+            colorscale=neon_scale,
+            colorbar=dict(title="Tonnes", tickfont=dict(color="#8b95a5")),
+            marker_line_color="#0a1a2f", marker_line_width=0.6,
+            hovertemplate="<b>%{text}</b><br>Reserves: %{z:,.1f} t<extra></extra>",
+        ))
 
     mines_df = pd.DataFrame(MINE_SITES)
     choke_df = pd.DataFrame(CHOKEPOINTS)
-    fig.add_scattergeo(lat=mines_df["lat"], lon=mines_df["lon"], text=mines_df["name"] + " — " + mines_df["type"], mode="markers", marker=dict(size=8, color="#5ee6a8", symbol="diamond"), name="Mines")
-    fig.add_scattergeo(lat=choke_df["lat"], lon=choke_df["lon"], text=choke_df["name"], mode="markers", marker=dict(size=9, color="#ff6b6b", symbol="x"), name="Shipping chokepoints")
+
+    if "Trade routes" in layers:
+        for _, mine in mines_df.iterrows():
+            dists = (choke_df["lat"] - mine["lat"]) ** 2 + (choke_df["lon"] - mine["lon"]) ** 2
+            nearest = choke_df.iloc[dists.idxmin()]
+            fig.add_trace(go.Scattergeo(
+                lat=[mine["lat"], nearest["lat"]], lon=[mine["lon"], nearest["lon"]],
+                mode="lines", line=dict(width=1, color="rgba(0,234,255,0.35)", dash="dot"),
+                showlegend=False, hoverinfo="skip",
+            ))
+
+    if "Mines" in layers:
+        fig.add_trace(go.Scattergeo(
+            lat=mines_df["lat"], lon=mines_df["lon"], mode="markers",
+            marker=dict(size=18, color="rgba(94,230,168,0.25)"),
+            showlegend=False, hoverinfo="skip",
+        ))
+        fig.add_trace(go.Scattergeo(
+            lat=mines_df["lat"], lon=mines_df["lon"], mode="markers",
+            text=mines_df["name"] + " — " + mines_df["type"],
+            marker=dict(size=7, color="#5ee6a8", symbol="diamond", line=dict(width=1, color="#0a1a2f")),
+            name="Mines", hovertemplate="<b>%{text}</b><extra></extra>",
+        ))
+
+    if "Chokepoints" in layers:
+        fig.add_trace(go.Scattergeo(
+            lat=choke_df["lat"], lon=choke_df["lon"], mode="markers",
+            marker=dict(size=20, color="rgba(255,107,107,0.25)"),
+            showlegend=False, hoverinfo="skip",
+        ))
+        fig.add_trace(go.Scattergeo(
+            lat=choke_df["lat"], lon=choke_df["lon"], mode="markers",
+            text=choke_df["name"],
+            marker=dict(size=9, color="#ff6b6b", symbol="x"),
+            name="Shipping chokepoints", hovertemplate="<b>%{text}</b><extra></extra>",
+        ))
+
+    fig.update_geos(
+        projection_type=proj_type,
+        projection_rotation=dict(lon=rot_lon, lat=rot_lat),
+        showland=True, landcolor="#0a1a2f",
+        showocean=True, oceancolor="#020611",
+        showcountries=True, countrycolor="#123049",
+        showcoastlines=True, coastlinecolor="#00eaff",
+        showframe=False,
+        bgcolor="rgba(0,0,0,0)",
+    )
+    fig.update_layout(
+        height=520, margin=dict(l=0, r=0, t=0, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        legend=dict(font=dict(color="#c9c9d1"), bgcolor="rgba(0,0,0,0)"),
+    )
     st.plotly_chart(fig, use_container_width=True)
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Reserve nations", len(df))
+    m2.metric("Mine sites", len(MINE_SITES))
+    m3.metric("Chokepoints", len(CHOKEPOINTS))
+
     with st.expander("Reserves ledger"):
         st.dataframe(df[["country", "tonnes"]].sort_values("tonnes", ascending=False), use_container_width=True, hide_index=True)
-    st.caption("Reserve tonnages reflect the latest publicly reported IMF/World Gold Council figures and update periodically, not in real time.")
-
+    st.caption("Reserve tonnages reflect the latest publicly reported IMF/World Gold Council figures and update periodically, not in real time. Trade route lines are illustrative nearest-chokepoint links, not actual shipping data.")
 
 def render_news():
     st.subheader("Intel feed")
@@ -353,7 +440,7 @@ def main():
         ["Map & Intel", "Historical charts", "Portfolio", "Alerts"]
     )
     with tab_overview:
-        render_reserves_map()
+            render_reserves_map(dark)
         render_news()
     with tab_history:
         render_history_chart()
