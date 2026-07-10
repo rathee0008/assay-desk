@@ -248,8 +248,8 @@ def render_reserves_map(dark: bool):
 
     layers = st.multiselect(
         "Map layers",
-        ["Reserves", "Mines", "Chokepoints", "Trade routes"],
-        default=["Reserves", "Mines", "Chokepoints", "Trade routes"],
+        ["Mines", "Chokepoints", "Trade routes"],
+        default=["Mines", "Chokepoints", "Trade routes"],
     )
     ctrl1, ctrl2, ctrl3 = st.columns([2, 1, 1])
     with ctrl1:
@@ -269,71 +269,62 @@ def render_reserves_map(dark: bool):
         [1.0, "#e8b64c"],
     ]
 
-    fig = go.Figure()
-
-    if "Reserves" in layers:
-        fig.add_trace(go.Choropleth(
-            locations=df["iso3"], z=df["tonnes"], text=df["country"],
-            colorscale=neon_scale,
-            colorbar=dict(title="Tonnes", tickfont=dict(color="#8b95a5")),
-            marker_line_color="#0a1a2f", marker_line_width=0.6,
-            hovertemplate="<b>%{text}</b><br>Reserves: %{z:,.1f} t<extra></extra>",
-        ))
-
     mines_df = pd.DataFrame(MINE_SITES)
     choke_df = pd.DataFrame(CHOKEPOINTS)
+
+    fig = px.choropleth(df, locations="iso3", color="tonnes", hover_name="country", color_continuous_scale=neon_scale, labels={"tonnes": "Tonnes"})
+    fig.update_layout(
+        height=520, margin=dict(l=0, r=0, t=0, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        geo=dict(
+            bgcolor="rgba(0,0,0,0)",
+            projection_type=proj_type,
+            projection_rotation=dict(lon=rot_lon, lat=rot_lat),
+            landcolor="#0a1a2f",
+            showocean=True, oceancolor="#020611",
+            showcountries=True, countrycolor="#123049",
+            showcoastlines=True, coastlinecolor="#00eaff",
+            showframe=False,
+        ),
+        legend=dict(font=dict(color="#c9c9d1"), bgcolor="rgba(0,0,0,0)"),
+    )
 
     if "Trade routes" in layers:
         for _, mine in mines_df.iterrows():
             dists = (choke_df["lat"] - mine["lat"]) ** 2 + (choke_df["lon"] - mine["lon"]) ** 2
             nearest = choke_df.iloc[dists.idxmin()]
-            fig.add_trace(go.Scattergeo(
+            fig.add_scattergeo(
                 lat=[mine["lat"], nearest["lat"]], lon=[mine["lon"], nearest["lon"]],
                 mode="lines", line=dict(width=1, color="rgba(0,234,255,0.35)", dash="dot"),
                 showlegend=False, hoverinfo="skip",
-            ))
+            )
 
     if "Mines" in layers:
-        fig.add_trace(go.Scattergeo(
+        fig.add_scattergeo(
             lat=mines_df["lat"], lon=mines_df["lon"], mode="markers",
-            marker=dict(size=18, color="rgba(94,230,168,0.25)"),
+            marker=dict(size=16, color="rgba(94,230,168,0.25)"),
             showlegend=False, hoverinfo="skip",
-        ))
-        fig.add_trace(go.Scattergeo(
-            lat=mines_df["lat"], lon=mines_df["lon"], mode="markers",
-            text=mines_df["name"] + " — " + mines_df["type"],
-            marker=dict(size=7, color="#5ee6a8", symbol="diamond", line=dict(width=1, color="#0a1a2f")),
-            name="Mines", hovertemplate="<b>%{text}</b><extra></extra>",
-        ))
+        )
+        fig.add_scattergeo(
+            lat=mines_df["lat"], lon=mines_df["lon"],
+            text=mines_df["name"] + " — " + mines_df["type"], mode="markers",
+            marker=dict(size=7, color="#5ee6a8", symbol="diamond"),
+            name="Mines",
+        )
 
     if "Chokepoints" in layers:
-        fig.add_trace(go.Scattergeo(
+        fig.add_scattergeo(
             lat=choke_df["lat"], lon=choke_df["lon"], mode="markers",
-            marker=dict(size=20, color="rgba(255,107,107,0.25)"),
+            marker=dict(size=18, color="rgba(255,107,107,0.25)"),
             showlegend=False, hoverinfo="skip",
-        ))
-        fig.add_trace(go.Scattergeo(
-            lat=choke_df["lat"], lon=choke_df["lon"], mode="markers",
-            text=choke_df["name"],
+        )
+        fig.add_scattergeo(
+            lat=choke_df["lat"], lon=choke_df["lon"],
+            text=choke_df["name"], mode="markers",
             marker=dict(size=9, color="#ff6b6b", symbol="x"),
-            name="Shipping chokepoints", hovertemplate="<b>%{text}</b><extra></extra>",
-        ))
+            name="Shipping chokepoints",
+        )
 
-    fig.update_geos(
-        projection_type=proj_type,
-        projection_rotation=dict(lon=rot_lon, lat=rot_lat),
-        showland=True, landcolor="#0a1a2f",
-        showocean=True, oceancolor="#020611",
-        showcountries=True, countrycolor="#123049",
-        showcoastlines=True, coastlinecolor="#00eaff",
-        showframe=False,
-        bgcolor="rgba(0,0,0,0)",
-    )
-    fig.update_layout(
-        height=520, margin=dict(l=0, r=0, t=0, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        legend=dict(font=dict(color="#c9c9d1"), bgcolor="rgba(0,0,0,0)"),
-    )
     st.plotly_chart(fig, use_container_width=True)
 
     m1, m2, m3 = st.columns(3)
