@@ -2,877 +2,993 @@
 <title>Assay — Metals &amp; Macro Intelligence Desk</title>
 <meta name="description" content="A live-simulated metals and macro intelligence terminal: spot prices, central bank gold reserves, chokepoint risk, and an intel feed." />
 <style>
-  :root {
-    --bg: #14110d;
-    --bg-raised: #1a1610;
-    --surface: #1d1811;
-    --surface-2: #241e15;
-    --border: #3a3226;
-    --border-soft: #2a251c;
-    --text: #ede6d8;
-    --text-dim: #b3a891;
-    --text-mute: #8c8271;
-    --gold: #c99a3a;
-    --gold-dim: #8a7233;
-    --copper: #bd6a3a;
-    --silver: #b7b3a6;
-    --palladium: #8a9c8f;
-    --good: #66a06a;
-    --good-dim: #3d5940;
-    --warn: #d59a3a;
-    --critical: #c3492f;
-    --critical-dim: #4a2620;
-    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", Georgia, serif;
-    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-data: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-    color-scheme: dark;
-  }
+:root {
+--bg: #14110d;
+--bg-raised: #1a1610;
+--surface: #1d1811;
+--surface-2: #241e15;
+--border: #3a3226;
+--border-soft: #2a251c;
+--text: #ede6d8;
+--text-dim: #b3a891;
+--text-mute: #8c8271;
+--gold: #c99a3a;
+--gold-dim: #8a7233;
+--copper: #bd6a3a;
+--silver: #b7b3a6;
+--palladium: #8a9c8f;
+--good: #66a06a;
+--good-dim: #3d5940;
+--warn: #d59a3a;
+--critical: #c3492f;
+--critical-dim: #4a2620;
+--font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", Georgia, serif;
+--font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+--font-data: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+color-scheme: dark;
+}
 
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    background-image:
-      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(201,154,58,0.07), transparent 60%),
-      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(189,106,58,0.05), transparent 55%);
-    color: var(--text);
-    font-family: var(--font-body);
-    font-size: 14px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-  }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+background: var(--bg);
+background-image:
+radial-gradient(ellipse 900px 500px at 15% -10%, rgba(201,154,58,0.07), transparent 60%),
+radial-gradient(ellipse 700px 500px at 100% 0%, rgba(189,106,58,0.05), transparent 55%);
+color: var(--text);
+font-family: var(--font-body);
+font-size: 14px;
+line-height: 1.5;
+-webkit-font-smoothing: antialiased;
+}
 
-  ::selection { background: var(--gold-dim); color: #fff; }
+::selection { background: var(--gold-dim); color: #fff; }
 
-  a { color: inherit; }
+a { color: inherit; }
 
-  .app {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 20px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+.app {
+max-width: 1400px;
+margin: 0 auto;
+padding: 0 20px 28px;
+display: flex;
+flex-direction: column;
+gap: 16px;
+}
 
-  /* ---------- Masthead ---------- */
-  .masthead {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px 24px;
-    padding: 22px 0 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .brand {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-  }
-  .brand__mark {
-    font-family: var(--font-display);
-    font-size: 30px;
-    letter-spacing: 0.14em;
-    font-weight: 400;
-    color: var(--text);
-    text-transform: uppercase;
-  }
-  .brand__mark em {
-    font-style: normal;
-    color: var(--gold);
-  }
-  .brand__tag {
-    font-size: 12px;
-    color: var(--text-mute);
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-  }
-  .masthead__status {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-    font-size: 12.5px;
-    color: var(--text-dim);
-  }
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 3px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    letter-spacing: 0.04em;
-  }
-  .pill--live { color: var(--good); border-color: var(--good-dim); }
-  .pill--live .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 0 rgba(102,160,106,.6); animation: pulse 2.2s infinite; }
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(102,160,106,.5); }
-    70% { box-shadow: 0 0 0 6px rgba(102,160,106,0); }
-    100% { box-shadow: 0 0 0 0 rgba(102,160,106,0); }
-  }
-  .risk-chip { border-color: var(--critical-dim); color: var(--critical); }
+/* ---------- Masthead ---------- */
+.masthead {
+display: flex;
+align-items: baseline;
+justify-content: space-between;
+flex-wrap: wrap;
+gap: 10px 24px;
+padding: 22px 0 16px;
+border-bottom: 1px solid var(--border);
+}
+.brand {
+display: flex;
+align-items: baseline;
+gap: 14px;
+}
+.brand__mark {
+font-family: var(--font-display);
+font-size: 30px;
+letter-spacing: 0.14em;
+font-weight: 400;
+color: var(--text);
+text-transform: uppercase;
+}
+.brand__mark em {
+font-style: normal;
+color: var(--gold);
+}
+.brand__tag {
+font-size: 12px;
+color: var(--text-mute);
+letter-spacing: 0.04em;
+white-space: nowrap;
+}
+.masthead__status {
+display: flex;
+align-items: center;
+gap: 16px;
+font-family: var(--font-data);
+font-variant-numeric: tabular-nums;
+font-size: 12.5px;
+color: var(--text-dim);
+}
+.pill {
+display: inline-flex;
+align-items: center;
+gap: 6px;
+padding: 4px 10px;
+border-radius: 3px;
+border: 1px solid var(--border);
+background: var(--surface);
+letter-spacing: 0.04em;
+}
+.pill--live { color: var(--good); border-color: var(--good-dim); }
+.pill--live .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 0 rgba(102,160,106,.6); animation: pulse 2.2s infinite; }
+@keyframes pulse {
+0% { box-shadow: 0 0 0 0 rgba(102,160,106,.5); }
+70% { box-shadow: 0 0 0 6px rgba(102,160,106,0); }
+100% { box-shadow: 0 0 0 0 rgba(102,160,106,0); }
+}
+.risk-chip { border-color: var(--critical-dim); color: var(--critical); }
 
-  /* ---------- Ticker ---------- */
-  .ticker {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .ticker__item {
-    background: var(--surface);
-    padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-  }
-  .ticker__label {
-    font-size: 10.5px;
-    letter-spacing: 0.1em;
-    color: var(--text-mute);
-    text-transform: uppercase;
-  }
-  .ticker__row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .ticker__price {
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-    font-size: 18px;
-    color: var(--text);
-    transition: color .3s;
-  }
-  .ticker__price.flash-up { color: var(--good); }
-  .ticker__price.flash-down { color: var(--critical); }
-  .ticker__delta {
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-    font-size: 11.5px;
-    padding: 2px 5px;
-    border-radius: 2px;
-    white-space: nowrap;
-  }
-  .ticker__delta.up { color: var(--good); background: rgba(102,160,106,.1); }
-  .ticker__delta.down { color: var(--critical); background: rgba(195,73,47,.1); }
-  .ticker__spark { width: 100%; height: 26px; display: block; }
+/* ---------- Ticker ---------- */
+.ticker {
+display: grid;
+grid-template-columns: repeat(5, 1fr);
+gap: 1px;
+background: var(--border);
+border: 1px solid var(--border);
+border-radius: 4px;
+overflow: hidden;
+}
+.ticker__item {
+background: var(--surface);
+padding: 12px 16px;
+display: flex;
+flex-direction: column;
+gap: 4px;
+min-width: 0;
+}
+.ticker__label {
+font-size: 10.5px;
+letter-spacing: 0.1em;
+color: var(--text-mute);
+text-transform: uppercase;
+}
+.ticker__row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 8px;
+}
+.ticker__price {
+font-family: var(--font-data);
+font-variant-numeric: tabular-nums;
+font-size: 18px;
+color: var(--text);
+transition: color .3s;
+}
+.ticker__price.flash-up { color: var(--good); }
+.ticker__price.flash-down { color: var(--critical); }
+.ticker__delta {
+font-family: var(--font-data);
+font-variant-numeric: tabular-nums;
+font-size: 11.5px;
+padding: 2px 5px;
+border-radius: 2px;
+white-space: nowrap;
+}
+.ticker__delta.up { color: var(--good); background: rgba(102,160,106,.1); }
+.ticker__delta.down { color: var(--critical); background: rgba(195,73,47,.1); }
+.ticker__spark { width: 100%; height: 26px; display: block; }
 
-  /* ---------- Layout ---------- */
-  .desk {
-    display: grid;
-    grid-template-columns: 1fr 1.15fr 1fr;
-    gap: 16px;
-    align-items: start;
-  }
-  @media (max-width: 980px) {
-    .desk { grid-template-columns: 1fr; }
-  }
+/* ---------- Layout ---------- */
+.desk {
+display: grid;
+grid-template-columns: 1fr 1.15fr 1fr;
+gap: 16px;
+align-items: start;
+}
+@media (max-width: 980px) {
+.desk { grid-template-columns: 1fr; }
+}
 
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  .panel__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border-soft);
-  }
-  .panel__title {
-    font-family: var(--font-display);
-    font-size: 13.5px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-  }
-  .panel__meta {
-    font-family: var(--font-data);
-    font-size: 11px;
-    color: var(--text-mute);
-  }
-  .panel__body { padding: 6px 0; }
+.panel {
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: 4px;
+display: flex;
+flex-direction: column;
+min-height: 0;
+}
+.panel__head {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 12px 14px;
+border-bottom: 1px solid var(--border-soft);
+}
+.panel__title {
+font-family: var(--font-display);
+font-size: 13.5px;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+color: var(--text-dim);
+}
+.panel__meta {
+font-family: var(--font-data);
+font-size: 11px;
+color: var(--text-mute);
+}
+.panel__body { padding: 6px 0; }
 
-  /* ---------- Reserves list ---------- */
-  .reserve-row {
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border-soft);
-    cursor: pointer;
-  }
-  .reserve-row:last-child { border-bottom: none; }
-  .reserve-row:hover { background: var(--surface-2); }
-  .reserve-row__top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  .reserve-row__name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-  }
-  .flag-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--gold);
-    flex: none;
-  }
-  .reserve-row__figs {
-    display: flex;
-    gap: 14px;
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-  .reserve-row__figs .delta.up { color: var(--good); }
-  .reserve-row__figs .delta.down { color: var(--critical); }
-  .reserve-bar {
-    margin-top: 7px;
-    height: 3px;
-    border-radius: 2px;
-    background: var(--border-soft);
-    overflow: hidden;
-  }
-  .reserve-bar > i { display: block; height: 100%; background: var(--gold); }
-  .reserve-detail {
-    display: none;
-    margin-top: 10px;
-    padding: 10px 12px;
-    background: var(--bg-raised);
-    border: 1px solid var(--border-soft);
-    border-radius: 3px;
-    font-size: 12.5px;
-    color: var(--text-dim);
-  }
-  .reserve-row.open .reserve-detail { display: block; }
-  .tag {
-    display: inline-block;
-    font-size: 10px;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    padding: 2px 6px;
-    border-radius: 2px;
-    margin-bottom: 7px;
-  }
-  .tag--rumor { background: rgba(213,154,58,.14); color: var(--warn); }
-  .tag--confirmed { background: rgba(102,160,106,.14); color: var(--good); }
+/* ---------- Reserves list ---------- */
+.reserve-row {
+padding: 10px 14px;
+border-bottom: 1px solid var(--border-soft);
+cursor: pointer;
+}
+.reserve-row:last-child { border-bottom: none; }
+.reserve-row:hover { background: var(--surface-2); }
+.reserve-row__top {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 10px;
+}
+.reserve-row__name {
+display: flex;
+align-items: center;
+gap: 8px;
+font-size: 13px;
+}
+.flag-dot {
+width: 7px; height: 7px; border-radius: 50%;
+background: var(--gold);
+flex: none;
+}
+.reserve-row__figs {
+display: flex;
+gap: 14px;
+font-family: var(--font-data);
+font-variant-numeric: tabular-nums;
+font-size: 12px;
+color: var(--text-dim);
+}
+.reserve-row__figs .delta.up { color: var(--good); }
+.reserve-row__figs .delta.down { color: var(--critical); }
+.reserve-bar {
+margin-top: 7px;
+height: 3px;
+border-radius: 2px;
+background: var(--border-soft);
+overflow: hidden;
+}
+.reserve-bar > i { display: block; height: 100%; background: var(--gold); }
+.reserve-detail {
+display: none;
+margin-top: 10px;
+padding: 10px 12px;
+background: var(--bg-raised);
+border: 1px solid var(--border-soft);
+border-radius: 3px;
+font-size: 12.5px;
+color: var(--text-dim);
+}
+.reserve-row.open .reserve-detail { display: block; }
+.tag {
+display: inline-block;
+font-size: 10px;
+letter-spacing: .06em;
+text-transform: uppercase;
+padding: 2px 6px;
+border-radius: 2px;
+margin-bottom: 7px;
+}
+.tag--rumor { background: rgba(213,154,58,.14); color: var(--warn); }
+.tag--confirmed { background: rgba(102,160,106,.14); color: var(--good); }
 
-  /* ---------- Risk network (center) ---------- */
-  .risk-gauge-wrap {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px;
-    border-bottom: 1px solid var(--border-soft);
-  }
-  .risk-gauge-num {
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-    font-size: 30px;
-    color: var(--critical);
-  }
-  .risk-gauge-label { font-size: 11.5px; color: var(--text-mute); line-height: 1.4; }
-  /* ---------- Global intel map ---------- */
-  .map-wrap {
-    position: relative;
-    margin: 0 14px 10px;
-    height: 320px;
-    border: 1px solid var(--border-soft);
-    border-radius: 3px;
-    overflow: hidden;
-    background: var(--bg-raised);
-  }
-  .map-wrap canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-  .map-markers { position: absolute; inset: 0; }
-  .map-marker {
-    position: absolute;
-    width: 8px; height: 8px;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    border: 1.5px solid rgba(20,17,13,.75);
-    cursor: pointer;
-    padding: 0;
-    background: var(--silver);
-  }
-  .map-marker::after {
-    content: "";
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-  }
-  .map-marker.mine-gold { background: var(--gold); }
-  .map-marker.mine-copper { background: var(--copper); }
-  .map-marker.mine-other { background: var(--palladium); }
-  .map-marker.chokepoint { width: 10px; height: 10px; background: var(--critical); }
-  .map-marker.chokepoint.critical { box-shadow: 0 0 0 5px rgba(195,73,47,.22); }
-  .map-marker.central-bank {
-    background: var(--bg-raised);
-    border: 2px solid var(--gold);
-    border-radius: 2px;
-    width: 7px; height: 7px;
-    transform: translate(-50%, -50%) rotate(45deg);
-  }
-  .map-marker:hover, .map-marker:focus-visible { filter: brightness(1.35); outline: none; }
-  .map-marker.selected { outline: 2px solid var(--text); outline-offset: 2px; }
+/* ---------- Risk network (center) ---------- */
+.risk-gauge-wrap {
+display: flex;
+align-items: center;
+gap: 16px;
+padding: 14px;
+border-bottom: 1px solid var(--border-soft);
+}
+.risk-gauge-num {
+font-family: var(--font-data);
+font-variant-numeric: tabular-nums;
+font-size: 30px;
+color: var(--critical);
+}
+.risk-gauge-label { font-size: 11.5px; color: var(--text-mute); line-height: 1.4; }
+/* ---------- Global intel map ---------- */
+.map-toolbar {
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 0 14px 10px;
+flex-wrap: wrap;
+}
+.map-search {
+flex: 1 1 160px;
+min-width: 120px;
+background: var(--bg-raised);
+border: 1px solid var(--border);
+border-radius: 3px;
+color: var(--text);
+font-family: var(--font-body);
+font-size: 12px;
+padding: 6px 9px;
+}
+.map-search:focus { outline: none; border-color: var(--gold-dim); }
+.map-search::placeholder { color: var(--text-mute); }
+.map-chip {
+font-size: 11px;
+letter-spacing: .02em;
+color: var(--text-dim);
+background: var(--surface-2);
+border: 1px solid var(--border);
+border-radius: 20px;
+padding: 5px 11px;
+cursor: pointer;
+display: inline-flex;
+align-items: center;
+gap: 5px;
+user-select: none;
+white-space: nowrap;
+}
+.map-chip:hover { border-color: var(--gold-dim); color: var(--text); }
+.map-chip.active { background: var(--gold-dim); border-color: var(--gold); color: #fff; }
+.map-zoom-controls { display: flex; gap: 4px; margin-left: auto; }
+.map-zoom-btn {
+width: 24px; height: 24px;
+display: flex; align-items: center; justify-content: center;
+background: var(--surface-2);
+border: 1px solid var(--border);
+border-radius: 3px;
+color: var(--text-dim);
+cursor: pointer;
+font-family: var(--font-data);
+font-size: 13px;
+line-height: 1;
+}
+.map-zoom-btn:hover { border-color: var(--gold-dim); color: var(--text); }
 
-  .map-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 16px;
-    padding: 0 14px 10px;
-    font-size: 10.5px;
-    color: var(--text-mute);
-    letter-spacing: .02em;
-  }
-  .map-legend span { display: inline-flex; align-items: center; gap: 5px; }
-  .map-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .map-legend i.sq { border: 2px solid var(--gold); border-radius: 2px; width: 6px; height: 6px; transform: rotate(45deg); background: transparent; }
+.map-wrap {
+position: relative;
+margin: 0 14px 10px;
+height: 400px;
+border: 1px solid var(--border-soft);
+border-radius: 3px;
+overflow: hidden;
+background:
+radial-gradient(ellipse 700px 380px at 50% 45%, rgba(183, 179, 166, 0.05), transparent 70%),
+var(--bg-raised);
+cursor: grab;
+touch-action: none;
+}
+.map-wrap:active { cursor: grabbing; }
+.map-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.map-land { fill: rgba(183,179,166,0.10); stroke: rgba(183,179,166,0.28); stroke-width: 0.6; }
+.map-graticule { fill: none; stroke: rgba(183,179,166,0.06); stroke-width: 0.5; }
+.map-sphere { fill: rgba(201,154,58,0.02); }
 
-  .map-layers {
-    display: flex;
-    gap: 16px;
-    padding: 0 14px 10px;
-    font-size: 11.5px;
-    color: var(--text-dim);
-  }
-  .map-layers label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-  .map-layers input { accent-color: var(--gold); }
+.map-marker { cursor: pointer; transition: opacity .2s ease; }
+.map-marker.mine-gold { fill: var(--gold); }
+.map-marker.mine-copper { fill: var(--copper); }
+.map-marker.mine-other { fill: var(--palladium); }
+.map-marker.chokepoint { fill: var(--critical); }
+.map-marker.central-bank { fill: var(--bg-raised); stroke: var(--gold); stroke-width: 1.4; }
+.map-marker:hover, .map-marker.hovered { filter: brightness(1.4); }
+.map-marker.selected { stroke: var(--text); stroke-width: 1.6; }
+.map-marker.dimmed { opacity: 0.12; }
+.map-marker.critical-pulse { animation: markerPulse 2.2s ease-out infinite; }
+@keyframes markerPulse {
+0% { filter: brightness(1) drop-shadow(0 0 0 rgba(195,73,47,.55)); }
+50% { filter: brightness(1.25) drop-shadow(0 0 4px rgba(195,73,47,.55)); }
+100% { filter: brightness(1) drop-shadow(0 0 0 rgba(195,73,47,.55)); }
+}
 
-  .map-wrap.hide-sites .map-marker:not(.central-bank) { display: none; }
-  .map-wrap.hide-banks .map-marker.central-bank { display: none; }
+.map-tooltip {
+position: absolute;
+z-index: 5;
+pointer-events: none;
+background: var(--bg-raised);
+border: 1px solid var(--border);
+border-radius: 3px;
+padding: 6px 9px;
+font-size: 11.5px;
+color: var(--text);
+max-width: 220px;
+box-shadow: 0 4px 14px rgba(0,0,0,.4);
+opacity: 0;
+transition: opacity .1s ease;
+transform: translate(-50%, calc(-100% - 10px));
+white-space: nowrap;
+}
+.map-tooltip.show { opacity: 1; }
+.map-tooltip b { color: var(--gold); }
 
-  .map-detail {
-    margin: 0 14px 14px;
-    padding: 10px 12px;
-    min-height: 18px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-soft);
-    border-radius: 3px;
-    font-size: 12.5px;
-    color: var(--text-dim);
-  }
-  .map-detail__title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text);
-    font-size: 13px;
-    margin-bottom: 4px;
-  }
-  .map-detail__hint { color: var(--text-mute); }
-  .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
-  .status-dot.critical { background: var(--critical); }
-  .status-dot.elevated { background: var(--warn); }
-  .status-dot.stable { background: var(--good); }
+.map-hint {
+position: absolute;
+right: 8px;
+bottom: 6px;
+font-size: 10px;
+color: var(--text-mute);
+letter-spacing: .02em;
+background: rgba(20,17,13,.55);
+padding: 2px 6px;
+border-radius: 2px;
+pointer-events: none;
+}
 
-  /* ---------- Feed ---------- */
-  .feed { max-height: 560px; overflow-y: auto; }
-  .feed-item {
-    padding: 11px 14px;
-    border-bottom: 1px solid var(--border-soft);
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .feed-item:last-child { border-bottom: none; }
-  .feed-item.is-new { animation: fadein .6s ease; }
-  @keyframes fadein { from { background: rgba(201,154,58,.14); } to { background: transparent; } }
-  .feed-item__meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 10.5px;
-    color: var(--text-mute);
-  }
-  .cat {
-    font-size: 9.5px;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    padding: 2px 6px;
-    border-radius: 2px;
-    background: var(--surface-2);
-    color: var(--text-dim);
-    border: 1px solid var(--border-soft);
-  }
-  .cat--energy { color: var(--copper); }
-  .cat--mining { color: var(--gold); }
-  .cat--military { color: var(--critical); }
-  .cat--maritime { color: var(--palladium); }
-  .feed-item__time { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
-  .feed-item__headline { font-size: 13px; color: var(--text); text-wrap: pretty; }
-  .feed-item__src { font-size: 11px; color: var(--text-mute); }
+.map-legend {
+display: flex;
+flex-wrap: wrap;
+gap: 8px 16px;
+padding: 0 14px 10px;
+font-size: 10.5px;
+color: var(--text-mute);
+letter-spacing: .02em;
+}
+.map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.map-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.map-legend i.sq { border: 2px solid var(--gold); border-radius: 2px; width: 6px; height: 6px; transform: rotate(45deg); background: transparent; }
 
-  /* ---------- Alert strip ---------- */
-  .alert-strip {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px 20px;
-    padding: 10px 16px;
-    background: var(--surface);
-    border: 1px solid var(--critical-dim);
-    border-radius: 4px;
-    font-family: var(--font-data);
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-  .alert-strip__left { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-  .alert-count { color: var(--critical); font-weight: 600; }
-  .footnote { color: var(--text-mute); font-size: 11px; }
+.map-detail {
+margin: 0 14px 14px;
+padding: 10px 12px;
+min-height: 18px;
+background: var(--surface-2);
+border: 1px solid var(--border-soft);
+border-radius: 3px;
+font-size: 12.5px;
+color: var(--text-dim);
+}
+.map-detail__title {
+display: flex;
+align-items: center;
+gap: 8px;
+color: var(--text);
+font-size: 13px;
+margin-bottom: 4px;
+}
+.map-detail__hint { color: var(--text-mute); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+.status-dot.critical { background: var(--critical); }
+.status-dot.elevated { background: var(--warn); }
+.status-dot.stable { background: var(--good); }
+/* ---------- Feed ---------- */
+.feed { max-height: 560px; overflow-y: auto; }
+.feed-item {
+padding: 11px 14px;
+border-bottom: 1px solid var(--border-soft);
+display: flex;
+flex-direction: column;
+gap: 5px;
+}
+.feed-item:last-child { border-bottom: none; }
+.feed-item.is-new { animation: fadein .6s ease; }
+@keyframes fadein { from { background: rgba(201,154,58,.14); } to { background: transparent; } }
+.feed-item__meta {
+display: flex;
+align-items: center;
+gap: 8px;
+font-size: 10.5px;
+color: var(--text-mute);
+}
+.cat {
+font-size: 9.5px;
+letter-spacing: .07em;
+text-transform: uppercase;
+padding: 2px 6px;
+border-radius: 2px;
+background: var(--surface-2);
+color: var(--text-dim);
+border: 1px solid var(--border-soft);
+}
+.cat--energy { color: var(--copper); }
+.cat--mining { color: var(--gold); }
+.cat--military { color: var(--critical); }
+.cat--maritime { color: var(--palladium); }
+.feed-item__time { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.feed-item__headline { font-size: 13px; color: var(--text); text-wrap: pretty; }
+.feed-item__src { font-size: 11px; color: var(--text-mute); }
 
-  @media (prefers-reduced-motion: reduce) {
-    * { animation: none !important; transition: none !important; }
-  }
+/* ---------- Alert strip ---------- */
+.alert-strip {
+display: flex;
+align-items: center;
+justify-content: space-between;
+flex-wrap: wrap;
+gap: 10px 20px;
+padding: 10px 16px;
+background: var(--surface);
+border: 1px solid var(--critical-dim);
+border-radius: 4px;
+font-family: var(--font-data);
+font-size: 12px;
+color: var(--text-dim);
+}
+.alert-strip__left { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.alert-count { color: var(--critical); font-weight: 600; }
+.footnote { color: var(--text-mute); font-size: 11px; }
 
-  ::-webkit-scrollbar { width: 8px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+* { animation: none !important; transition: none !important; }
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 </style>
 
 <div class="app">
 
-  <header class="masthead">
-    <div class="brand">
-      <div class="brand__mark">A<em>ssay</em></div>
-      <div class="brand__tag">Metals &amp; Macro Intelligence Desk</div>
-    </div>
-    <div class="masthead__status">
-      <span class="pill pill--live"><span class="dot"></span> LIVE · SIMULATED FEED</span>
-      <span class="pill" id="clock">--:--:-- UTC</span>
-      <span class="pill risk-chip">RISK 78/100</span>
-    </div>
-  </header>
+<header class="masthead">
+<div class="brand">
+<div class="brand__mark">A<em>ssay</em></div>
+<div class="brand__tag">Metals &amp; Macro Intelligence Desk</div>
+</div>
+<div class="masthead__status">
+<span class="pill pill--live"><span class="dot"></span> LIVE · SIMULATED FEED</span>
+<span class="pill" id="clock">--:--:-- UTC</span>
+<span class="pill risk-chip">RISK 78/100</span>
+</div>
+</header>
 
-  <section class="ticker" id="ticker"></section>
+<section class="ticker" id="ticker"></section>
 
-  <main class="desk">
+<main class="desk">
 
-    <!-- LEFT: Central bank reserves -->
-    <section class="panel">
-      <div class="panel__head">
-        <span class="panel__title">Central Bank Gold Reserves</span>
-        <span class="panel__meta">10 tracked</span>
-      </div>
-      <div class="panel__body" id="reserves"></div>
-    </section>
+<!-- LEFT: Central bank reserves -->
+<section class="panel">
+<div class="panel__head">
+<span class="panel__title">Central Bank Gold Reserves</span>
+<span class="panel__meta">10 tracked</span>
+</div>
+<div class="panel__body" id="reserves"></div>
+</section>
 
-    <!-- CENTER: Global intel map -->
-    <section class="panel">
-      <div class="panel__head">
-        <span class="panel__title">Global Intel Map</span>
-        <span class="panel__meta" id="siteCount">-- sites</span>
-      </div>
-      <div class="risk-gauge-wrap">
-        <div class="risk-gauge-num" id="riskNum">78</div>
-        <div class="risk-gauge-label">Composite score across shipping<br/>chokepoints and mine-region unrest</div>
-      </div>
-      <div class="map-wrap" id="mapWrap">
-        <canvas id="mapCanvas"></canvas>
-        <div class="map-markers" id="mapMarkers"></div>
-      </div>
-      <div class="map-legend">
-        <span><i style="background:var(--gold)"></i>gold mine</span>
-        <span><i style="background:var(--copper)"></i>copper mine</span>
-        <span><i style="background:var(--palladium)"></i>other minerals</span>
-        <span><i style="background:var(--critical)"></i>chokepoint</span>
-        <span><i class="sq"></i>central bank</span>
-      </div>
-      <div class="map-layers">
-        <label><input type="checkbox" id="toggleSites" checked /> Mines &amp; chokepoints</label>
-        <label><input type="checkbox" id="toggleBanks" checked /> Central bank vaults</label>
-      </div>
-      <div class="map-detail" id="mapDetail">
-        <span class="map-detail__hint">Click a marker to inspect the site.</span>
-      </div>
-    </section>
+<!-- CENTER: Global intel map -->
+<section class="panel">
+<div class="panel__head">
+<span class="panel__title">Global Intel Map</span>
+<span class="panel__meta" id="siteCount">-- sites</span>
+</div>
+<div class="risk-gauge-wrap">
+<div class="risk-gauge-num" id="riskNum">78</div>
+<div class="risk-gauge-label">Composite score across shipping<br/>chokepoints and mine-region unrest</div>
+</div>
+<div class="map-toolbar">
+<input type="text" class="map-search" id="mapSearch" placeholder="Search sites, mines, chokepoints…" />
+<span class="map-chip active" data-filter="all">All</span>
+<span class="map-chip" data-filter="mine">Mines</span>
+<span class="map-chip" data-filter="chokepoint">Chokepoints</span>
+<span class="map-chip" data-filter="central-bank">Vaults</span>
+<span class="map-chip" data-filter="critical-only">Critical only</span>
+<div class="map-zoom-controls">
+<button type="button" class="map-zoom-btn" id="mapZoomOut" aria-label="Zoom out">−</button>
+<button type="button" class="map-zoom-btn" id="mapZoomReset" aria-label="Reset zoom">⟲</button>
+<button type="button" class="map-zoom-btn" id="mapZoomIn" aria-label="Zoom in">+</button>
+</div>
+</div>
+<div class="map-wrap" id="mapWrap">
+<svg id="mapSvg" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet">
+<g id="mapZoomLayer">
+<path class="map-sphere" id="mapSphere"></path>
+<path class="map-graticule" id="mapGraticule"></path>
+<g id="mapLand"></g>
+<g id="mapMarkers"></g>
+</g>
+</svg>
+<div class="map-tooltip" id="mapTooltip"></div>
+<div class="map-hint">Scroll or pinch to zoom · drag to pan</div>
+</div>
+<div class="map-legend">
+<span><i style="background:var(--gold)"></i>gold mine</span>
+<span><i style="background:var(--copper)"></i>copper mine</span>
+<span><i style="background:var(--palladium)"></i>other minerals</span>
+<span><i style="background:var(--critical)"></i>chokepoint</span>
+<span><i class="sq"></i>central bank</span>
+</div>
+<div class="map-detail" id="mapDetail">
+<span class="map-detail__hint">Click a marker to inspect the site. Search or filter above to narrow the map.</span>
+</div>
+</section>
 
-    <!-- RIGHT: Live feed -->
-    <section class="panel">
-      <div class="panel__head">
-        <span class="panel__title">Intel Feed</span>
-        <span class="panel__meta" id="feedCount">0 items</span>
-      </div>
-      <div class="panel__body feed" id="feed"></div>
-    </section>
+<!-- RIGHT: Live feed -->
+<section class="panel">
+<div class="panel__head">
+<span class="panel__title">Intel Feed</span>
+<span class="panel__meta" id="feedCount">0 items</span>
+</div>
+<div class="panel__body feed" id="feed"></div>
+</section>
 
-  </main>
+</main>
 
-  <footer class="alert-strip">
-    <div class="alert-strip__left">
-      <span><span class="alert-count">4</span> critical alerts</span>
-      <span><span class="alert-count" id="highRiskCount">--</span> high-risk sites</span>
-      <span>156/156 sources reporting</span>
-    </div>
-    <div class="footnote">Illustrative data generated for demonstration — not live market data.</div>
-  </footer>
+<footer class="alert-strip">
+<div class="alert-strip__left">
+<span><span class="alert-count">4</span> critical alerts</span>
+<span><span class="alert-count" id="highRiskCount">--</span> high-risk sites</span>
+<span>156/156 sources reporting</span>
+</div>
+<div class="footnote">Illustrative data generated for demonstration — not live market data.</div>
+</footer>
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <script>
 (function () {
-  "use strict";
-  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+"use strict";
+var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // ---------- Clock ----------
-  function tick() {
-    var d = new Date();
-    var s = d.getUTCHours().toString().padStart(2,"0") + ":" +
-            d.getUTCMinutes().toString().padStart(2,"0") + ":" +
-            d.getUTCSeconds().toString().padStart(2,"0") + " UTC";
-    document.getElementById("clock").textContent = s;
-  }
-  tick();
-  setInterval(tick, 1000);
+// ---------- Clock ----------
+function tick() {
+var d = new Date();
+var s = d.getUTCHours().toString().padStart(2,"0") + ":" +
+d.getUTCMinutes().toString().padStart(2,"0") + ":" +
+d.getUTCSeconds().toString().padStart(2,"0") + " UTC";
+document.getElementById("clock").textContent = s;
+}
+tick();
+setInterval(tick, 1000);
 
-  // ---------- Ticker ----------
-  var commodities = [
-    { key:"gold", label:"Gold", price:4787.40, yoy:64.6, hist:[4210,4260,4300,4350,4410,4460,4520,4580,4630,4680,4720,4750,4787] },
-    { key:"silver", label:"Silver", price:76.48, yoy:139.0, hist:[32,38,44,50,55,58,62,66,69,71,73,75,76.48] },
-    { key:"platinum", label:"Platinum", price:2065.20, yoy:124.5, hist:[950,1050,1150,1300,1420,1550,1650,1750,1850,1930,1990,2030,2065.2] },
-    { key:"palladium", label:"Palladium", price:1540.20, yoy:62.1, hist:[980,1020,1080,1140,1190,1240,1290,1350,1400,1450,1490,1520,1540.2] },
-    { key:"copper", label:"Copper", price:5.89, yoy:15.5, hist:[5.1,5.2,5.25,5.3,5.35,5.4,5.5,5.55,5.6,5.68,5.75,5.82,5.89] }
-  ];
+// ---------- Ticker ----------
+var commodities = [
+{ key:"gold", label:"Gold", price:4787.40, yoy:64.6, hist:[4210,4260,4300,4350,4410,4460,4520,4580,4630,4680,4720,4750,4787] },
+{ key:"silver", label:"Silver", price:76.48, yoy:139.0, hist:[32,38,44,50,55,58,62,66,69,71,73,75,76.48] },
+{ key:"platinum", label:"Platinum", price:2065.20, yoy:124.5, hist:[950,1050,1150,1300,1420,1550,1650,1750,1850,1930,1990,2030,2065.2] },
+{ key:"palladium", label:"Palladium", price:1540.20, yoy:62.1, hist:[980,1020,1080,1140,1190,1240,1290,1350,1400,1450,1490,1520,1540.2] },
+{ key:"copper", label:"Copper", price:5.89, yoy:15.5, hist:[5.1,5.2,5.25,5.3,5.35,5.4,5.5,5.55,5.6,5.68,5.75,5.82,5.89] }
+];
 
-  function spark(hist, color) {
-    var w = 100, h = 26, pad = 2;
-    var min = Math.min.apply(null, hist), max = Math.max.apply(null, hist);
-    var range = (max - min) || 1;
-    var pts = hist.map(function (v, i) {
-      var x = pad + (i / (hist.length - 1)) * (w - pad*2);
-      var y = h - pad - ((v - min) / range) * (h - pad*2);
-      return x.toFixed(1) + "," + y.toFixed(1);
-    }).join(" ");
-    var last = pts.split(" ").pop().split(",");
-    return '<svg class="ticker__spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
-      '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>' +
-      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="1.8" fill="' + color + '"/>' +
-      '</svg>';
-  }
+function spark(hist, color) {
+var w = 100, h = 26, pad = 2;
+var min = Math.min.apply(null, hist), max = Math.max.apply(null, hist);
+var range = (max - min) || 1;
+var pts = hist.map(function (v, i) {
+var x = pad + (i / (hist.length - 1)) * (w - pad*2);
+var y = h - pad - ((v - min) / range) * (h - pad*2);
+return x.toFixed(1) + "," + y.toFixed(1);
+}).join(" ");
+var last = pts.split(" ").pop().split(",");
+return '<svg class="ticker__spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+'<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>' +
+'<circle cx="' + last[0] + '" cy="' + last[1] + '" r="1.8" fill="' + color + '"/>' +
+'</svg>';
+}
 
-  function fmt(n, decimals) {
-    return n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-  }
+function fmt(n, decimals) {
+return n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
 
-  var tickerEl = document.getElementById("ticker");
-  commodities.forEach(function (c) {
-    var decimals = c.price < 100 ? 2 : 2;
-    var up = c.yoy >= 0;
-    var el = document.createElement("div");
-    el.className = "ticker__item";
-    el.innerHTML =
-      '<div class="ticker__label">' + c.label + ' · spot</div>' +
-      '<div class="ticker__row">' +
-        '<span class="ticker__price" data-price>' + "$" + fmt(c.price, decimals) + '</span>' +
-        '<span class="ticker__delta ' + (up ? "up" : "down") + '" data-delta>' + (up ? "▲ " : "▼ ") + Math.abs(c.yoy).toFixed(1) + '% YoY</span>' +
-      '</div>' +
-      spark(c.hist, up ? "#66a06a" : "#c3492f");
-    tickerEl.appendChild(el);
-    c.el = el;
-  });
+var tickerEl = document.getElementById("ticker");
+commodities.forEach(function (c) {
+var decimals = c.price < 100 ? 2 : 2;
+var up = c.yoy >= 0;
+var el = document.createElement("div");
+el.className = "ticker__item";
+el.innerHTML =
+'<div class="ticker__label">' + c.label + ' · spot</div>' +
+'<div class="ticker__row">' +
+'<span class="ticker__price" data-price>' + "$" + fmt(c.price, decimals) + '</span>' +
+'<span class="ticker__delta ' + (up ? "up" : "down") + '" data-delta>' + (up ? "▲ " : "▼ ") + Math.abs(c.yoy).toFixed(1) + '% YoY</span>' +
+'</div>' +
+spark(c.hist, up ? "#66a06a" : "#c3492f");
+tickerEl.appendChild(el);
+c.el = el;
+});
 
-  function jitterTicker() {
-    if (reduced) return;
-    commodities.forEach(function (c) {
-      var pct = (Math.random() - 0.48) * 0.006;
-      c.price = Math.max(0.01, c.price * (1 + pct));
-      var priceEl = c.el.querySelector("[data-price]");
-      priceEl.textContent = "$" + fmt(c.price, 2);
-      priceEl.classList.remove("flash-up", "flash-down");
-      void priceEl.offsetWidth;
-      priceEl.classList.add(pct >= 0 ? "flash-up" : "flash-down");
-      setTimeout(function () { priceEl.classList.remove("flash-up", "flash-down"); }, 900);
-    });
-  }
-  setInterval(jitterTicker, 3200);
+function jitterTicker() {
+if (reduced) return;
+commodities.forEach(function (c) {
+var pct = (Math.random() - 0.48) * 0.006;
+c.price = Math.max(0.01, c.price * (1 + pct));
+var priceEl = c.el.querySelector("[data-price]");
+priceEl.textContent = "$" + fmt(c.price, 2);
+priceEl.classList.remove("flash-up", "flash-down");
+void priceEl.offsetWidth;
+priceEl.classList.add(pct >= 0 ? "flash-up" : "flash-down");
+setTimeout(function () { priceEl.classList.remove("flash-up", "flash-down"); }, 900);
+});
+}
+setInterval(jitterTicker, 3200);
 
-  // ---------- Central bank reserves ----------
-  var reserves = [
-    { name:"United States", tonnes:8133.5, pctFx:68.2, ytd:+0.0, status:"confirmed", note:"Largest official holder for seven decades. No reported transactions in 2026; holdings unchanged and fully allocated at Fort Knox, West Point and Denver." },
-    { name:"Germany", tonnes:3352.6, pctFx:71.4, ytd:+0.0, status:"confirmed", note:"Bundesbank completed its repatriation programme in 2017 and has not altered reserves since. Occasional storage-location audits continue." },
-    { name:"Italy", tonnes:2451.8, pctFx:69.0, ytd:+0.0, status:"confirmed", note:"Third-largest holder in the euro area; Banca d'Italia holdings held flat through the current rate cycle." },
-    { name:"Russia", tonnes:2335.9, pctFx:31.8, ytd:+18.0, status:"confirmed", note:"Continued accumulation reported through domestic purchase programmes as reserve diversification away from dollar assets persists." },
-    { name:"China", tonnes:2298.4, pctFx:5.6, ytd:+35.0, status:"confirmed", note:"PBoC has extended its buying streak; officially disclosed holdings still low as a share of total reserves versus G7 peers." },
-    { name:"Turkey", tonnes:614.0, pctFx:54.6, ytd:-12.0, status:"rumor", note:"Bought 27t in 2025 but rumored net seller of roughly 12t in Q1 2026. May be lending or swapping gold to defend the lira after retail demand collapsed as rates rose." },
-    { name:"India", tonnes:876.2, pctFx:11.3, ytd:+9.0, status:"confirmed", note:"RBI steady accumulation continues as part of a multi-year diversification plan disclosed in prior annual reports." },
-    { name:"Poland", tonnes:496.3, pctFx:21.7, ytd:+24.0, status:"confirmed", note:"NBP remains the most aggressive European buyer, pursuing a stated target of 20% gold share of reserves." },
-    { name:"Kazakhstan", tonnes:298.7, pctFx:58.9, ytd:-4.0, status:"rumor", note:"Domestic refinery purchase agreement reportedly paused; some cargoes said to be redirected to private export buyers." },
-    { name:"Switzerland", tonnes:1040.0, pctFx:8.1, ytd:+0.0, status:"confirmed", note:"SNB holdings steady; low share of total reserves reflects the bank's large FX and equity portfolio." }
-  ];
+// ---------- Central bank reserves ----------
+var reserves = [
+{ name:"United States", tonnes:8133.5, pctFx:68.2, ytd:+0.0, status:"confirmed", note:"Largest official holder for seven decades. No reported transactions in 2026; holdings unchanged and fully allocated at Fort Knox, West Point and Denver." },
+{ name:"Germany", tonnes:3352.6, pctFx:71.4, ytd:+0.0, status:"confirmed", note:"Bundesbank completed its repatriation programme in 2017 and has not altered reserves since. Occasional storage-location audits continue." },
+{ name:"Italy", tonnes:2451.8, pctFx:69.0, ytd:+0.0, status:"confirmed", note:"Third-largest holder in the euro area; Banca d'Italia holdings held flat through the current rate cycle." },
+{ name:"Russia", tonnes:2335.9, pctFx:31.8, ytd:+18.0, status:"confirmed", note:"Continued accumulation reported through domestic purchase programmes as reserve diversification away from dollar assets persists." },
+{ name:"China", tonnes:2298.4, pctFx:5.6, ytd:+35.0, status:"confirmed", note:"PBoC has extended its buying streak; officially disclosed holdings still low as a share of total reserves versus G7 peers." },
+{ name:"Turkey", tonnes:614.0, pctFx:54.6, ytd:-12.0, status:"rumor", note:"Bought 27t in 2025 but rumored net seller of roughly 12t in Q1 2026. May be lending or swapping gold to defend the lira after retail demand collapsed as rates rose." },
+{ name:"India", tonnes:876.2, pctFx:11.3, ytd:+9.0, status:"confirmed", note:"RBI steady accumulation continues as part of a multi-year diversification plan disclosed in prior annual reports." },
+{ name:"Poland", tonnes:496.3, pctFx:21.7, ytd:+24.0, status:"confirmed", note:"NBP remains the most aggressive European buyer, pursuing a stated target of 20% gold share of reserves." },
+{ name:"Kazakhstan", tonnes:298.7, pctFx:58.9, ytd:-4.0, status:"rumor", note:"Domestic refinery purchase agreement reportedly paused; some cargoes said to be redirected to private export buyers." },
+{ name:"Switzerland", tonnes:1040.0, pctFx:8.1, ytd:+0.0, status:"confirmed", note:"SNB holdings steady; low share of total reserves reflects the bank's large FX and equity portfolio." }
+];
 
-  var reservesEl = document.getElementById("reserves");
-  var reserveRowsByName = {};
-  var maxTonnes = Math.max.apply(null, reserves.map(function (r) { return r.tonnes; }));
-  reserves.forEach(function (r) {
-    var row = document.createElement("div");
-    row.className = "reserve-row";
-    var up = r.ytd >= 0;
-    row.innerHTML =
-      '<div class="reserve-row__top">' +
-        '<div class="reserve-row__name"><span class="flag-dot"></span>' + r.name + '</div>' +
-        '<div class="reserve-row__figs">' +
-          '<span>' + fmt(r.tonnes,0) + 't</span>' +
-          '<span class="delta ' + (up ? "up" : "down") + '">' + (up ? "+" : "") + r.ytd.toFixed(0) + 't YTD</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="reserve-bar"><i style="width:' + ((r.tonnes / maxTonnes) * 100).toFixed(0) + '%"></i></div>' +
-      '<div class="reserve-detail">' +
-        '<span class="tag ' + (r.status === "confirmed" ? "tag--confirmed" : "tag--rumor") + '">' + (r.status === "confirmed" ? "Confirmed" : "Unconfirmed · market speculation") + '</span>' +
-        '<div>' + r.note + '</div>' +
-        '<div style="margin-top:6px;color:var(--text-mute);font-size:11px">Gold ≈ ' + r.pctFx.toFixed(1) + '% of FX reserves</div>' +
-      '</div>';
-    row.addEventListener("click", function () { row.classList.toggle("open"); });
-    reservesEl.appendChild(row);
-    reserveRowsByName[r.name] = row;
-  });
+var reservesEl = document.getElementById("reserves");
+var reserveRowsByName = {};
+var maxTonnes = Math.max.apply(null, reserves.map(function (r) { return r.tonnes; }));
+reserves.forEach(function (r) {
+var row = document.createElement("div");
+row.className = "reserve-row";
+var up = r.ytd >= 0;
+row.innerHTML =
+'<div class="reserve-row__top">' +
+'<div class="reserve-row__name"><span class="flag-dot"></span>' + r.name + '</div>' +
+'<div class="reserve-row__figs">' +
+'<span>' + fmt(r.tonnes,0) + 't</span>' +
+'<span class="delta ' + (up ? "up" : "down") + '">' + (up ? "+" : "") + r.ytd.toFixed(0) + 't YTD</span>' +
+'</div>' +
+'</div>' +
+'<div class="reserve-bar"><i style="width:' + ((r.tonnes / maxTonnes) * 100).toFixed(0) + '%"></i></div>' +
+'<div class="reserve-detail">' +
+'<span class="tag ' + (r.status === "confirmed" ? "tag--confirmed" : "tag--rumor") + '">' + (r.status === "confirmed" ? "Confirmed" : "Unconfirmed · market speculation") + '</span>' +
+'<div>' + r.note + '</div>' +
+'<div style="margin-top:6px;color:var(--text-mute);font-size:11px">Gold ≈ ' + r.pctFx.toFixed(1) + '% of FX reserves</div>' +
+'</div>';
+row.addEventListener("click", function () { row.classList.toggle("open"); });
+reservesEl.appendChild(row);
+reserveRowsByName[r.name] = row;
+});
 
-  // ---------- Global intel map ----------
-  var LAT_MIN = -58, LAT_MAX = 78;
+// ---------- Global intel map ----------
+var siteData = [
+{ name:"Strait of Hormuz", cat:"chokepoint", status:"critical", lat:26.5, lon:56.25, stat:"~20% of seaborne oil transits here", note:"Tanker war-risk premiums climbing; naval assets reported repositioning near the strait." },
+{ name:"Strait of Malacca", cat:"chokepoint", status:"stable", lat:2.5, lon:101.5, stat:"Key Asia trade corridor", note:"Transit volumes tracking the trailing-month average with no reported disruption." },
+{ name:"Suez Canal", cat:"chokepoint", status:"elevated", lat:30.5, lon:32.3, stat:"Red Sea approach", note:"Transit volumes recovering toward pre-disruption levels after a slow first half." },
+{ name:"Escondida, Chile", cat:"mine-copper", status:"elevated", lat:-24.3, lon:-69.07, stat:"Largest copper mine by output", note:"Labor union signals a possible strike vote after wage talks stalled." },
+{ name:"Cerro Verde, Peru", cat:"mine-copper", status:"elevated", lat:-16.5, lon:-71.6, stat:"Major copper producer", note:"Community and labor unrest reported around the concession this quarter." },
+{ name:"Kolwezi, DR Congo", cat:"mine-other", status:"critical", lat:-10.7, lon:25.47, stat:"Cobalt / copper belt", note:"Export slowdown reported at the border crossing amid a customs dispute." },
+{ name:"Norilsk, Russia", cat:"mine-other", status:"elevated", lat:69.3, lon:88.2, stat:"Nickel / palladium complex", note:"Guidance lowered citing planned smelter maintenance in the back half of the year." },
+{ name:"Pilbara, Australia", cat:"mine-other", status:"stable", lat:-22.0, lon:118.5, stat:"Iron ore region", note:"No active disruptions reported; output tracking plan." },
+{ name:"Carlin Trend, USA", cat:"mine-gold", status:"stable", lat:40.8, lon:-116.4, stat:"Largest US gold district", note:"Output steady; no material permitting or labor issues reported." },
+{ name:"Witwatersrand, South Africa", cat:"mine-gold", status:"stable", lat:-26.2, lon:27.9, stat:"Historic gold basin", note:"Deep-level output steady; power supply remains the main watch item." },
+{ name:"Grasberg, Indonesia", cat:"mine-gold", status:"elevated", lat:-4.05, lon:137.1, stat:"Top gold / copper deposit", note:"Operating permit renewal pending; markets watching for delays." },
+{ name:"Ahafo, Ghana", cat:"mine-gold", status:"stable", lat:7.4, lon:-2.3, stat:"West Africa gold belt", note:"Output on plan; no disruptions reported this quarter." }
+];
 
-  // Stylized continent silhouettes as unions of ellipses in lon/lat space —
-  // schematic, not surveyed coastlines.
-  var landmasses = [
-    { cx:-100, cy:48, rx:32, ry:18 },   // US / Canada
-    { cx:-153, cy:64, rx:12, ry:7 },    // Alaska
-    { cx:-95, cy:68, rx:20, ry:9 },     // Canadian arctic
-    { cx:-102, cy:24, rx:10, ry:7 },    // Mexico
-    { cx:-88, cy:13, rx:6, ry:6 },      // Central America
-    { cx:-42, cy:74, rx:11, ry:9 },     // Greenland
-    { cx:-58, cy:-10, rx:16, ry:20 },   // South America north
-    { cx:-68, cy:-40, rx:8, ry:12 },    // Patagonia
-    { cx:15, cy:50, rx:18, ry:11 },     // Europe
-    { cx:15, cy:63, rx:8, ry:8 },       // Scandinavia
-    { cx:-3, cy:54, rx:4, ry:4 },       // UK / Ireland
-    { cx:15, cy:20, rx:20, ry:15 },     // North Africa
-    { cx:20, cy:-10, rx:16, ry:18 },    // Central / southern Africa
-    { cx:45, cy:8, rx:8, ry:6 },        // Horn of Africa
-    { cx:48, cy:27, rx:10, ry:8 },      // Middle East
-    { cx:90, cy:60, rx:45, ry:15 },     // Siberia
-    { cx:80, cy:32, rx:20, ry:15 },     // Central / South Asia
-    { cx:110, cy:40, rx:18, ry:13 },    // East Asia
-    { cx:105, cy:12, rx:12, ry:10 },    // SE Asia
-    { cx:139, cy:37, rx:4, ry:6 },      // Japan
-    { cx:125, cy:-3, rx:15, ry:6 },     // Indonesia / New Guinea
-    { cx:134, cy:-25, rx:15, ry:10 }    // Australia
-  ];
+var centralBankCoords = {
+"United States": [38.9, -77.0], "Germany": [52.5, 13.4], "Italy": [41.9, 12.5],
+"Russia": [55.75, 37.6], "China": [39.9, 116.4], "Turkey": [39.9, 32.85],
+"India": [28.6, 77.2], "Poland": [52.2, 21.0], "Kazakhstan": [51.2, 71.4],
+"Switzerland": [46.9, 7.45]
+};
+reserves.forEach(function (r) {
+var coord = centralBankCoords[r.name];
+if (!coord) return;
+siteData.push({ name: r.name, cat: "central-bank", lat: coord[0], lon: coord[1], reserveRef: r });
+});
 
-  function isLand(lat, lon) {
-    for (var i = 0; i < landmasses.length; i++) {
-      var m = landmasses[i];
-      var dx = (lon - m.cx) / m.rx, dy = (lat - m.cy) / m.ry;
-      if (dx * dx + dy * dy <= 1) return true;
-    }
-    return false;
-  }
+var highRisk = siteData.filter(function (s) { return s.status === "critical" || s.status === "elevated"; }).length;
+document.getElementById("siteCount").textContent = siteData.length + " sites";
+document.getElementById("highRiskCount").textContent = highRisk;
 
-  function projectFrac(lat, lon) {
-    return {
-      fx: (lon + 180) / 360,
-      fy: (LAT_MAX - lat) / (LAT_MAX - LAT_MIN)
-    };
-  }
+var mapDetail = document.getElementById("mapDetail");
+var mapTooltip = document.getElementById("mapTooltip");
+var mapWrap = document.getElementById("mapWrap");
+var selectedMarkerEl = null;
 
-  var canvas = document.getElementById("mapCanvas");
-  var ctx = canvas.getContext("2d");
-  function drawMap() {
-    var rect = canvas.parentElement.getBoundingClientRect();
-    var dpr = window.devicePixelRatio || 1;
-    var w = rect.width, h = rect.height;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "rgba(201,154,58,0.32)";
-    var lonStep = 3, latStep = (LAT_MAX - LAT_MIN) / (h / 6);
-    latStep = Math.max(2.2, Math.min(4, latStep));
-    for (var lat = LAT_MAX; lat >= LAT_MIN; lat -= latStep) {
-      for (var lon = -180; lon <= 180; lon += lonStep) {
-        if (isLand(lat, lon)) {
-          var p = projectFrac(lat, lon);
-          ctx.beginPath();
-          ctx.arc(p.fx * w, p.fy * h, 1.05, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-  }
-  drawMap();
-  window.addEventListener("resize", drawMap);
+function statusLabel(status) { return status.charAt(0).toUpperCase() + status.slice(1); }
 
-  var siteData = [
-    { name:"Strait of Hormuz", cat:"chokepoint", status:"critical", lat:26.5, lon:56.25, stat:"~20% of seaborne oil transits here", note:"Tanker war-risk premiums climbing; naval assets reported repositioning near the strait." },
-    { name:"Strait of Malacca", cat:"chokepoint", status:"stable", lat:2.5, lon:101.5, stat:"Key Asia trade corridor", note:"Transit volumes tracking the trailing-month average with no reported disruption." },
-    { name:"Suez Canal", cat:"chokepoint", status:"elevated", lat:30.5, lon:32.3, stat:"Red Sea approach", note:"Transit volumes recovering toward pre-disruption levels after a slow first half." },
-    { name:"Escondida, Chile", cat:"mine-copper", status:"elevated", lat:-24.3, lon:-69.07, stat:"Largest copper mine by output", note:"Labor union signals a possible strike vote after wage talks stalled." },
-    { name:"Cerro Verde, Peru", cat:"mine-copper", status:"elevated", lat:-16.5, lon:-71.6, stat:"Major copper producer", note:"Community and labor unrest reported around the concession this quarter." },
-    { name:"Kolwezi, DR Congo", cat:"mine-other", status:"critical", lat:-10.7, lon:25.47, stat:"Cobalt / copper belt", note:"Export slowdown reported at the border crossing amid a customs dispute." },
-    { name:"Norilsk, Russia", cat:"mine-other", status:"elevated", lat:69.3, lon:88.2, stat:"Nickel / palladium complex", note:"Guidance lowered citing planned smelter maintenance in the back half of the year." },
-    { name:"Pilbara, Australia", cat:"mine-other", status:"stable", lat:-22.0, lon:118.5, stat:"Iron ore region", note:"No active disruptions reported; output tracking plan." },
-    { name:"Carlin Trend, USA", cat:"mine-gold", status:"stable", lat:40.8, lon:-116.4, stat:"Largest US gold district", note:"Output steady; no material permitting or labor issues reported." },
-    { name:"Witwatersrand, South Africa", cat:"mine-gold", status:"stable", lat:-26.2, lon:27.9, stat:"Historic gold basin", note:"Deep-level output steady; power supply remains the main watch item." },
-    { name:"Grasberg, Indonesia", cat:"mine-gold", status:"elevated", lat:-4.05, lon:137.1, stat:"Top gold / copper deposit", note:"Operating permit renewal pending; markets watching for delays." },
-    { name:"Ahafo, Ghana", cat:"mine-gold", status:"stable", lat:7.4, lon:-2.3, stat:"West Africa gold belt", note:"Output on plan; no disruptions reported this quarter." }
-  ];
+function catLabelFor(cat) {
+return { "chokepoint":"Shipping chokepoint", "mine-gold":"Gold mine", "mine-copper":"Copper mine", "mine-other":"Mine / other minerals", "central-bank":"Central bank vault" }[cat];
+}
 
-  var centralBankCoords = {
-    "United States": [38.9, -77.0], "Germany": [52.5, 13.4], "Italy": [41.9, 12.5],
-    "Russia": [55.75, 37.6], "China": [39.9, 116.4], "Turkey": [39.9, 32.85],
-    "India": [28.6, 77.2], "Poland": [52.2, 21.0], "Kazakhstan": [51.2, 71.4],
-    "Switzerland": [46.9, 7.45]
-  };
-  reserves.forEach(function (r) {
-    var coord = centralBankCoords[r.name];
-    if (!coord) return;
-    siteData.push({ name: r.name, cat: "central-bank", lat: coord[0], lon: coord[1], reserveRef: r });
-  });
+function showDetail(site) {
+if (site.cat === "central-bank") {
+var r = site.reserveRef;
+var up = r.ytd >= 0;
+mapDetail.innerHTML =
+'<div class="map-detail__title">' + r.name + ' — Central Bank Vault' +
+'<span class="tag ' + (r.status === "confirmed" ? "tag--confirmed" : "tag--rumor") + '" style="margin:0">' + (r.status === "confirmed" ? "Confirmed" : "Unconfirmed") + '</span>' +
+'</div>' +
+'<div>' + r.tonnes.toLocaleString("en-US") + 't held · ' + (up ? "+" : "") + r.ytd.toFixed(0) + 't YTD · ' + r.pctFx.toFixed(1) + '% of FX reserves</div>' +
+'<div style="margin-top:5px">' + r.note + '</div>';
+var row = reserveRowsByName[r.name];
+if (row) {
+row.classList.add("open");
+row.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
+}
+} else {
+mapDetail.innerHTML =
+'<div class="map-detail__title"><span class="status-dot ' + site.status + '"></span>' + site.name +
+'<span style="color:var(--text-mute);font-size:11px;font-weight:400">' + catLabelFor(site.cat) + ' · ' + statusLabel(site.status) + '</span>' +
+'</div>' +
+'<div style="color:var(--text-mute);font-size:11.5px;margin-bottom:4px">' + site.stat + '</div>' +
+'<div>' + site.note + '</div>';
+}
+}
 
-  var markersEl = document.getElementById("mapMarkers");
-  var mapDetail = document.getElementById("mapDetail");
-  var selectedMarker = null;
+// ---- Real-coastline map: zoom/pan, hover tooltips, search & category filters ----
+var VB_W = 960, VB_H = 500;
+var svgEl = document.getElementById("mapSvg");
+var zoomLayer = d3.select("#mapZoomLayer");
+var landG = d3.select("#mapLand");
+var markersG = d3.select("#mapMarkers");
+var projection = d3.geoNaturalEarth1().fitSize([VB_W, VB_H], { type: "Sphere" });
+var geoPathGen = d3.geoPath(projection);
+var currentK = 1;
 
-  function statusLabel(status) {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  }
+d3.select("#mapSphere").attr("d", geoPathGen({ type: "Sphere" }));
+d3.select("#mapGraticule").attr("d", geoPathGen(d3.geoGraticule10()));
 
-  function showDetail(site, markerEl) {
-    if (selectedMarker) selectedMarker.classList.remove("selected");
-    selectedMarker = markerEl;
-    markerEl.classList.add("selected");
+function baseRadius(d) {
+return d.cat === "chokepoint" ? 4.5 : d.cat === "central-bank" ? 3.6 : 4;
+}
+function markerRadius(d, hovered) {
+var r = hovered ? baseRadius(d) * 1.6 : baseRadius(d);
+return r / currentK;
+}
 
-    if (site.cat === "central-bank") {
-      var r = site.reserveRef;
-      var up = r.ytd >= 0;
-      mapDetail.innerHTML =
-        '<div class="map-detail__title">' + r.name + ' — Central Bank Vault' +
-          '<span class="tag ' + (r.status === "confirmed" ? "tag--confirmed" : "tag--rumor") + '" style="margin:0">' + (r.status === "confirmed" ? "Confirmed" : "Unconfirmed") + '</span>' +
-        '</div>' +
-        '<div>' + r.tonnes.toLocaleString("en-US") + 't held · ' + (up ? "+" : "") + r.ytd.toFixed(0) + 't YTD · ' + r.pctFx.toFixed(1) + '% of FX reserves</div>' +
-        '<div style="margin-top:5px">' + r.note + '</div>';
-      var row = reserveRowsByName[r.name];
-      if (row) {
-        row.classList.add("open");
-        row.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
-      }
-    } else {
-      var catLabel = { "chokepoint":"Shipping chokepoint", "mine-gold":"Gold mine", "mine-copper":"Copper mine", "mine-other":"Mine / other minerals" }[site.cat];
-      mapDetail.innerHTML =
-        '<div class="map-detail__title"><span class="status-dot ' + site.status + '"></span>' + site.name +
-          '<span style="color:var(--text-mute);font-size:11px;font-weight:400">' + catLabel + ' · ' + statusLabel(site.status) + '</span>' +
-        '</div>' +
-        '<div style="color:var(--text-mute);font-size:11.5px;margin-bottom:4px">' + site.stat + '</div>' +
-        '<div>' + site.note + '</div>';
-    }
-  }
+function positionTooltip(event, d) {
+var wrapRect = mapWrap.getBoundingClientRect();
+mapTooltip.innerHTML = "<b>" + d.name + "</b><br>" + catLabelFor(d.cat);
+mapTooltip.style.left = (event.clientX - wrapRect.left) + "px";
+mapTooltip.style.top = (event.clientY - wrapRect.top) + "px";
+}
 
-  siteData.forEach(function (site) {
-    var p = projectFrac(site.lat, site.lon);
-    var el = document.createElement("button");
-    el.type = "button";
-    el.className = "map-marker " + site.cat + (site.status === "critical" ? " critical" : "");
-    el.style.left = (p.fx * 100).toFixed(2) + "%";
-    el.style.top = (p.fy * 100).toFixed(2) + "%";
-    el.setAttribute("aria-label", site.name);
-    el.addEventListener("click", function () { showDetail(site, el); });
-    markersEl.appendChild(el);
-  });
+function plotMarkers() {
+markersG.selectAll("circle.map-marker")
+.data(siteData, function (d) { return d.name; })
+.enter().append("circle")
+.attr("class", function (d) { return "map-marker " + d.cat + (d.status === "critical" ? " critical-pulse" : ""); })
+.attr("r", function (d) { return markerRadius(d, false); })
+.attr("cx", function (d) { var xy = projection([d.lon, d.lat]); return xy ? xy[0] : -9999; })
+.attr("cy", function (d) { var xy = projection([d.lon, d.lat]); return xy ? xy[1] : -9999; })
+.attr("tabindex", 0)
+.attr("aria-label", function (d) { return d.name; })
+.on("mouseenter", function (event, d) {
+d3.select(this).classed("hovered", true).attr("r", markerRadius(d, true));
+positionTooltip(event, d);
+mapTooltip.classList.add("show");
+})
+.on("focus", function (event, d) {
+d3.select(this).classed("hovered", true).attr("r", markerRadius(d, true));
+})
+.on("mousemove", function (event, d) { positionTooltip(event, d); })
+.on("mouseleave blur", function (event, d) {
+d3.select(this).classed("hovered", false).attr("r", markerRadius(d, false));
+mapTooltip.classList.remove("show");
+})
+.on("click", function (event, d) {
+event.stopPropagation();
+if (selectedMarkerEl) selectedMarkerEl.classList.remove("selected");
+selectedMarkerEl = this;
+this.classList.add("selected");
+showDetail(d);
+})
+.on("keydown", function (event, d) {
+if (event.key === "Enter" || event.key === " ") {
+event.preventDefault();
+if (selectedMarkerEl) selectedMarkerEl.classList.remove("selected");
+selectedMarkerEl = this;
+this.classList.add("selected");
+showDetail(d);
+}
+});
+}
 
-  var highRisk = siteData.filter(function (s) { return s.status === "critical" || s.status === "elevated"; }).length;
-  document.getElementById("siteCount").textContent = siteData.length + " sites";
-  document.getElementById("highRiskCount").textContent = highRisk;
+function drawLand(world) {
+var countries = topojson.feature(world, world.objects.countries).features;
+landG.selectAll("path").data(countries).enter().append("path")
+.attr("class", "map-land")
+.attr("d", geoPathGen);
+plotMarkers();
+}
 
-  var toggleSites = document.getElementById("toggleSites");
-  var toggleBanks = document.getElementById("toggleBanks");
-  var mapWrap = document.getElementById("mapWrap");
-  toggleSites.addEventListener("change", function () { mapWrap.classList.toggle("hide-sites", !toggleSites.checked); });
-  toggleBanks.addEventListener("change", function () { mapWrap.classList.toggle("hide-banks", !toggleBanks.checked); });
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+.then(function (res) { return res.json(); })
+.then(function (world) { drawLand(world); })
+.catch(function () { plotMarkers(); });
 
-  function jitterRisk() {
-    if (reduced) return;
-    var el = document.getElementById("riskNum");
-    var v = Math.max(0, Math.min(100, 78 + Math.round((Math.random() - 0.5) * 4)));
-    el.textContent = v;
-  }
-  setInterval(jitterRisk, 6000);
+// Zoom & pan
+var zoomBehavior = d3.zoom()
+.scaleExtent([1, 8])
+.translateExtent([[0, 0], [VB_W, VB_H]])
+.on("zoom", function (event) {
+currentK = event.transform.k;
+zoomLayer.attr("transform", event.transform);
+markersG.selectAll("circle.map-marker").each(function (d) {
+var isHovered = d3.select(this).classed("hovered");
+d3.select(this).attr("r", markerRadius(d, isHovered));
+});
+});
+d3.select(svgEl).call(zoomBehavior);
 
-  // ---------- Live feed ----------
-  var pool = [
-    { cat:"energy", tag:"Energy", headline:"Urals crude reaches $116/bbl at Primorsk, highest level in 13 years, as Hormuz transit disruptions ripple through refiners.", src:"3 sources · Oil" },
-    { cat:"maritime", tag:"Maritime", headline:"Insurers widen war-risk zone around the Strait of Hormuz; tanker premiums reported up sharply week over week.", src:"5 sources · Shipping" },
-    { cat:"mining", tag:"Mining", headline:"Escondida labor union signals possible strike vote after wage talks stall; mine accounts for roughly 5% of global copper supply.", src:"2 sources · Copper" },
-    { cat:"military", tag:"Military", headline:"Additional naval assets reported repositioning near the Strait of Hormuz amid ongoing tanker escort operations.", src:"4 sources · Defense" },
-    { cat:"energy", tag:"Energy", headline:"Analysts flag Strait of Hormuz transit volumes down for a third consecutive session versus the trailing month average.", src:"3 sources · Energy" },
-    { cat:"mining", tag:"Mining", headline:"Kolwezi cobalt exports reportedly slowed at the border crossing amid a customs dispute; buyers seeking alternate routing.", src:"2 sources · Cobalt" },
-    { cat:"maritime", tag:"Maritime", headline:"Suez Canal Authority reports transit volumes recovering toward pre-disruption levels for the first time this quarter.", src:"3 sources · Shipping" },
-    { cat:"mining", tag:"Mining", headline:"Norilsk Nickel flags lower palladium output guidance citing planned smelter maintenance in the back half of the year.", src:"2 sources · PGM" },
-    { cat:"energy", tag:"Energy", headline:"Gold's rally is increasingly framed by desks as a hedge against Hormuz-linked energy shock rather than rate expectations alone.", src:"6 sources · Macro" },
-    { cat:"military", tag:"Military", headline:"Regional officials downplay reports of naval buildup near key shipping lanes, calling recent movements routine.", src:"2 sources · Defense" }
-  ];
+document.getElementById("mapZoomIn").addEventListener("click", function () {
+d3.select(svgEl).transition().duration(200).call(zoomBehavior.scaleBy, 1.6);
+});
+document.getElementById("mapZoomOut").addEventListener("click", function () {
+d3.select(svgEl).transition().duration(200).call(zoomBehavior.scaleBy, 1 / 1.6);
+});
+document.getElementById("mapZoomReset").addEventListener("click", function () {
+d3.select(svgEl).transition().duration(250).call(zoomBehavior.transform, d3.zoomIdentity);
+});
 
-  var feedEl = document.getElementById("feed");
-  var feedCountEl = document.getElementById("feedCount");
-  var feedItems = [];
+// Search
+var mapSearch = document.getElementById("mapSearch");
+mapSearch.addEventListener("input", function () {
+var q = mapSearch.value.trim().toLowerCase();
+markersG.selectAll("circle.map-marker").classed("dimmed", function (d) {
+return q.length > 0 && d.name.toLowerCase().indexOf(q) === -1;
+});
+});
 
-  function relTime(ts) {
-    var mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
-    if (mins < 1) return "just now";
-    if (mins < 60) return mins + "m ago";
-    return Math.floor(mins / 60) + "h " + (mins % 60) + "m ago";
-  }
+// Category filter chips
+var activeFilter = "all";
+var chipEls = document.querySelectorAll(".map-chip");
+chipEls.forEach(function (chip) {
+chip.addEventListener("click", function () {
+activeFilter = chip.getAttribute("data-filter");
+chipEls.forEach(function (c) { c.classList.toggle("active", c === chip); });
+markersG.selectAll("circle.map-marker").style("display", function (d) {
+if (activeFilter === "all") return null;
+if (activeFilter === "mine") return d.cat.indexOf("mine-") === 0 ? null : "none";
+if (activeFilter === "critical-only") return d.status === "critical" ? null : "none";
+return d.cat === activeFilter ? null : "none";
+});
+});
+});
 
-  function renderFeed() {
-    feedEl.innerHTML = "";
-    feedItems.forEach(function (it, i) {
-      var div = document.createElement("div");
-      div.className = "feed-item" + (i === 0 && it.fresh ? " is-new" : "");
-      div.innerHTML =
-        '<div class="feed-item__meta"><span class="cat cat--' + it.cat + '">' + it.tag + '</span><span class="feed-item__time">' + relTime(it.ts) + '</span></div>' +
-        '<div class="feed-item__headline">' + it.headline + '</div>' +
-        '<div class="feed-item__src">' + it.src + '</div>';
-      feedEl.appendChild(div);
-    });
-    feedCountEl.textContent = feedItems.length + " items";
-  }
+function jitterRisk() {
+if (reduced) return;
+var el = document.getElementById("riskNum");
+var v = Math.max(0, Math.min(100, 78 + Math.round((Math.random() - 0.5) * 4)));
+el.textContent = v;
+}
+setInterval(jitterRisk, 6000);
 
-  function seedFeed() {
-    var now = Date.now();
-    var offsets = [2,7,14,22,38,51,63,80];
-    offsets.forEach(function (m, i) {
-      var p = pool[i % pool.length];
-      feedItems.push({ cat:p.cat, tag:p.tag, headline:p.headline, src:p.src, ts: now - m*60000, fresh:false });
-    });
-    renderFeed();
-  }
-  seedFeed();
+// ---------- Live feed ----------
+var pool = [
+{ cat:"energy", tag:"Energy", headline:"Urals crude reaches $116/bbl at Primorsk, highest level in 13 years, as Hormuz transit disruptions ripple through refiners.", src:"3 sources · Oil" },
+{ cat:"maritime", tag:"Maritime", headline:"Insurers widen war-risk zone around the Strait of Hormuz; tanker premiums reported up sharply week over week.", src:"5 sources · Shipping" },
+{ cat:"mining", tag:"Mining", headline:"Escondida labor union signals possible strike vote after wage talks stall; mine accounts for roughly 5% of global copper supply.", src:"2 sources · Copper" },
+{ cat:"military", tag:"Military", headline:"Additional naval assets reported repositioning near the Strait of Hormuz amid ongoing tanker escort operations.", src:"4 sources · Defense" },
+{ cat:"energy", tag:"Energy", headline:"Analysts flag Strait of Hormuz transit volumes down for a third consecutive session versus the trailing month average.", src:"3 sources · Energy" },
+{ cat:"mining", tag:"Mining", headline:"Kolwezi cobalt exports reportedly slowed at the border crossing amid a customs dispute; buyers seeking alternate routing.", src:"2 sources · Cobalt" },
+{ cat:"maritime", tag:"Maritime", headline:"Suez Canal Authority reports transit volumes recovering toward pre-disruption levels for the first time this quarter.", src:"3 sources · Shipping" },
+{ cat:"mining", tag:"Mining", headline:"Norilsk Nickel flags lower palladium output guidance citing planned smelter maintenance in the back half of the year.", src:"2 sources · PGM" },
+{ cat:"energy", tag:"Energy", headline:"Gold's rally is increasingly framed by desks as a hedge against Hormuz-linked energy shock rather than rate expectations alone.", src:"6 sources · Macro" },
+{ cat:"military", tag:"Military", headline:"Regional officials downplay reports of naval buildup near key shipping lanes, calling recent movements routine.", src:"2 sources · Defense" }
+];
 
-  function addFeedItem() {
-    var p = pool[Math.floor(Math.random() * pool.length)];
-    feedItems.unshift({ cat:p.cat, tag:p.tag, headline:p.headline, src:p.src, ts: Date.now(), fresh:true });
-    if (feedItems.length > 24) feedItems.pop();
-    renderFeed();
-  }
-  setInterval(addFeedItem, 9000);
-  setInterval(renderFeed, 30000); // refresh relative timestamps
+var feedEl = document.getElementById("feed");
+var feedCountEl = document.getElementById("feedCount");
+var feedItems = [];
+
+function relTime(ts) {
+var mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+if (mins < 1) return "just now";
+if (mins < 60) return mins + "m ago";
+return Math.floor(mins / 60) + "h " + (mins % 60) + "m ago";
+}
+
+function renderFeed() {
+feedEl.innerHTML = "";
+feedItems.forEach(function (it, i) {
+var div = document.createElement("div");
+div.className = "feed-item" + (i === 0 && it.fresh ? " is-new" : "");
+div.innerHTML =
+'<div class="feed-item__meta"><span class="cat cat--' + it.cat + '">' + it.tag + '</span><span class="feed-item__time">' + relTime(it.ts) + '</span></div>' +
+'<div class="feed-item__headline">' + it.headline + '</div>' +
+'<div class="feed-item__src">' + it.src + '</div>';
+feedEl.appendChild(div);
+});
+feedCountEl.textContent = feedItems.length + " items";
+}
+
+function seedFeed() {
+var now = Date.now();
+var offsets = [2,7,14,22,38,51,63,80];
+offsets.forEach(function (m, i) {
+var p = pool[i % pool.length];
+feedItems.push({ cat:p.cat, tag:p.tag, headline:p.headline, src:p.src, ts: now - m*60000, fresh:false });
+});
+renderFeed();
+}
+seedFeed();
+
+function addFeedItem() {
+var p = pool[Math.floor(Math.random() * pool.length)];
+feedItems.unshift({ cat:p.cat, tag:p.tag, headline:p.headline, src:p.src, ts: Date.now(), fresh:true });
+if (feedItems.length > 24) feedItems.pop();
+renderFeed();
+}
+setInterval(addFeedItem, 9000);
+setInterval(renderFeed, 30000); // refresh relative timestamps
 })();
 </script>
