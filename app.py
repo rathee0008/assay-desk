@@ -244,15 +244,30 @@ def render_history_chart():
 
 def render_reserves_map(dark: bool):
     st.subheader("Global reserves & trade network")
-    st.caption("Neon-lit view of central bank gold reserves, mine sites, and shipping chokepoints.")
-
-    layers = st.multiselect(
-        "Map layers",
-        ["Mines", "Chokepoints", "Trade routes"],
-        default=["Mines", "Chokepoints", "Trade routes"],
+    st.caption(
+        "Interactive view of central bank gold reserves, mine sites, and shipping chokepoints. "
+        "Scroll or use the toolbar to zoom, drag to pan, and click legend entries to isolate a layer."
     )
 
     df = pd.DataFrame(RESERVES)
+    mines_df = pd.DataFrame(MINE_SITES)
+    choke_df = pd.DataFrame(CHOKEPOINTS)
+
+    ctrl1, ctrl2, ctrl3 = st.columns([2.2, 1.6, 1])
+    with ctrl1:
+        layers = st.multiselect(
+            "Map layers",
+            ["Reserve shading", "Mines", "Chokepoints", "Trade routes"],
+            default=["Reserve shading", "Mines", "Chokepoints", "Trade routes"],
+        )
+    with ctrl2:
+        focus_options = ["World view"] + list(mines_df["name"]) + list(choke_df["name"])
+        focus = st.selectbox("Jump to site", focus_options)
+    with ctrl3:
+        st.write("")
+        st.write("")
+        reset_view = st.button("Reset view", use_container_width=True)
+
     neon_scale = [
         [0.0, "#050b18"],
         [0.25, "#0b3d5c"],
@@ -261,23 +276,35 @@ def render_reserves_map(dark: bool):
         [1.0, "#e8b64c"],
     ]
 
-    fig = px.choropleth(df, locations="iso3", color="tonnes", hover_name="country", color_continuous_scale=neon_scale, labels={"tonnes": "Tonnes"})
-    fig.update_layout(
-        height=460, margin=dict(l=0, r=0, t=0, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        geo=dict(
-            bgcolor="rgba(0,0,0,0)",
-            landcolor="#0a1a2f",
-            showocean=True, oceancolor="#020611",
-            showcountries=True, countrycolor="#123049",
-            showcoastlines=True, coastlinecolor="#00eaff",
-            showframe=False,
-        ),
-        legend=dict(font=dict(color="#c9c9d1"), bgcolor="rgba(0,0,0,0)"),
-    )
+    if "Reserve shading" in layers:
+        fig = px.choropleth(
+            df, locations="iso3", color="tonnes", hover_name="country",
+            color_continuous_scale=neon_scale, labels={"tonnes": "Tonnes"},
+        )
+        fig.update_traces(hovertemplate="<b>%{hovertext}</b><br>Reserves: %{z:,.0f} t<extra></extra>")
+    else:
+        fig = go.Figure()
+        fig.update_layout(coloraxis_showscale=False)
 
-    mines_df = pd.DataFrame(MINE_SITES)
-    choke_df = pd.DataFrame(CHOKEPOINTS)
+    fig.update_geos(
+        projection_type="natural earth",
+        bgcolor="rgba(0,0,0,0)",
+        landcolor="#0a1a2f",
+        showocean=True, oceancolor="#020611",
+        showcountries=True, countrycolor="#123049",
+        showcoastlines=True, coastlinecolor="#00eaff",
+        showframe=False,
+    )
+    fig.update_layout(
+        height=560,
+        margin=dict(l=0, r=0, t=10, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        legend=dict(
+            font=dict(color="#c9c9d1"), bgcolor="rgba(5,11,24,0.55)",
+            orientation="h", yanchor="bottom", y=0.01, xanchor="left", x=0.01,
+        ),
+        dragmode="pan",
+    )
 
     if "Trade routes" in layers:
         for _, mine in mines_df.iterrows():
@@ -298,8 +325,8 @@ def render_reserves_map(dark: bool):
         fig.add_scattergeo(
             lat=mines_df["lat"], lon=mines_df["lon"],
             text=mines_df["name"] + " — " + mines_df["type"], mode="markers",
-            marker=dict(size=7, color="#5ee6a8", symbol="diamond"),
-            name="Mines",
+            marker=dict(size=9, color="#5ee6a8", symbol="diamond", line=dict(width=1, color="#02150e")),
+            name="Mines", hovertemplate="<b>%{text}</b><extra></extra>",
         )
 
     if "Chokepoints" in layers:
@@ -311,20 +338,45 @@ def render_reserves_map(dark: bool):
         fig.add_scattergeo(
             lat=choke_df["lat"], lon=choke_df["lon"],
             text=choke_df["name"], mode="markers",
-            marker=dict(size=9, color="#ff6b6b", symbol="x"),
-            name="Shipping chokepoints",
+            marker=dict(size=10, color="#ff6b6b", symbol="x", line=dict(width=1, color="#210505")),
+            name="Shipping chokepoints", hovertemplate="<b>%{text}</b><br>Shipping chokepoint<extra></extra>",
         )
 
-    st.plotly_chart(fig, use_container_width=True)
+    focus_lookup = {}
+    for _, row in mines_df.iterrows():
+        focus_lookup[row["name"]] = (row["lat"], row["lon"])
+    for _, row in choke_df.iterrows():
+        focus_lookup[row["name"]] = (row["lat"], row["lon"])
+
+    if reset_view or focus == "World view":
+        fig.update_geos(projection_scale=1, center=dict(lat=15, lon=10))
+    elif focus in focus_lookup:
+        lat, lon = focus_lookup[focus]
+        fig.update_geos(projection_scale=4.5, center=dict(lat=lat, lon=lon))
+
+    st.plotly_chart(
+        fig, use_container_width=True,
+        config={"scrollZoom": True, "displaylogo": False, "modeBarButtonsToRemove": ["select2d", "lasso2d"]},
+    )
 
     m1, m2, m3 = st.columns(3)
     m1.metric("Reserve nations", len(df))
     m2.metric("Mine sites", len(MINE_SITES))
     m3.metric("Chokepoints", len(CHOKEPOINTS))
 
-    with st.expander("Reserves ledger"):
-        st.dataframe(df[["country", "tonnes"]].sort_values("tonnes", ascending=False), use_container_width=True, hide_index=True)
-    st.caption("Reserve tonnages reflect the latest publicly reported IMF/World Gold Council figures and update periodically, not in real time. Trade route lines are illustrative nearest-chokepoint links, not actual shipping data.")
+    search = st.text_input("Search reserves ledger by country", "")
+    ledger = df[["country", "tonnes"]].sort_values("tonnes", ascending=False)
+    if search:
+        ledger = ledger[ledger["country"].str.contains(search, case=False, na=False)]
+    with st.expander("Reserves ledger", expanded=bool(search)):
+        st.dataframe(ledger, use_container_width=True, hide_index=True)
+    st.caption(
+        "Reserve tonnages reflect the latest publicly reported IMF/World Gold Council figures and update "
+        "periodically, not in real time. Trade route lines are illustrative nearest-chokepoint links, not "
+        "actual shipping data."
+    )
+
+
 def render_news():
     st.subheader("Intel feed")
     for item in fetch_news():
