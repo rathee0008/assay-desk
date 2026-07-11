@@ -325,7 +325,7 @@ def render_reserves_map(dark: bool):
     with st.expander("Reserves ledger"):
         st.dataframe(df[["country", "tonnes"]].sort_values("tonnes", ascending=False), use_container_width=True, hide_index=True)
     st.caption("Reserve tonnages reflect the latest publicly reported IMF/World Gold Council figures and update periodically, not in real time. Trade route lines are illustrative nearest-chokepoint links, not actual shipping data.")
-    def render_news():
+def render_news():
     st.subheader("Intel feed")
     for item in fetch_news():
         st.markdown(f"- [{item['title']}]({item['link']}) — *{item['publisher']}*")
